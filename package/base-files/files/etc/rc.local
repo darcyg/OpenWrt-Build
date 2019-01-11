@@ -1,0 +1,12 @@
+# Put your custom commands here that should be executed once
+# the system init finished. By default this file does nothing.
+
+#/usr/local/start > /dev/null &
+
+#MD5_CHECK_FILE=/usr/local/navigation.1.93/node_up
+#md5sum ${MD5_CHECK_FILE}|awk '{print toupper($1)}' > ${MD5_CHECK_FILE}.md5
+
+ifconfig lo up
+/usr/local/start &
+
+exit 0
