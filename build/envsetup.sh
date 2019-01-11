@@ -62,6 +62,11 @@ function get_build_var()
         echo "Couldn't locate the top of the tree.  Try setting TOP." >&2
         return
     fi
+# ()语法：参阅[docs/shell中各种括号的作用详解.md]
+# --no-print-directory: tells make not to print the message about entering and leaving the working directory
+# Add this line to the Makefile: MAKEFLAGS += --no-print-directory
+#
+# command: 命令调用指定的指令并执行，命令执行时不查询shell函数。command命令只能够执行shell内部的命令。
     (\cd $T; CALLED_FROM_SETUP=true BUILD_SYSTEM=build \
       command make --no-print-directory -f build/config.mk dumpvar-$1)
 }
@@ -125,8 +130,10 @@ function set_sequence_number()
 unset LUNCH_MENU_CHOICES
 function add_lunch_combo()
 {
+# local修饰的变量，作用域局限于函数内
     local new_combo=$1
     local c
+# 参阅[docs/shell中数组知识详解.md]
     for c in ${LUNCH_MENU_CHOICES[@]} ; do
         if [ "$new_combo" = "$c" ] ; then
             return
@@ -170,15 +177,18 @@ function lunch()
 
     local selection=
 
+# 如果answer变量为空，则设置selection为默认值"astar_parrot-tina"
     if [ -z "$answer" ]
     then
         selection=astar_parrot-tina
+# "^[0-9][0-9]*$"：检查answer变量是否是数字，若是则从LUNCH_MENU_CHOICES数组取数据赋值
     elif (echo -n $answer | grep -q -e "^[0-9][0-9]*$")
     then
         if [ $answer -le ${#LUNCH_MENU_CHOICES[@]} ]
         then
             selection=${LUNCH_MENU_CHOICES[$(($answer-1))]}
         fi
+# # "^[^\-][^\-]*-[^\-][^\-]*$"：检查answer变量格式是否形如"XXXX-XXXXX"的字符串
     elif (echo -n $answer | grep -q -e "^[^\-][^\-]*-[^\-][^\-]*$")
     then
         selection=$answer
@@ -191,7 +201,9 @@ function lunch()
         return 1
     fi
 
+# 截掉'_'及其后面的内容，结果赋给platform。astar_parrot-tina--->astar
     local platform=$(echo -n $selection | sed -e "s/_.*$//")
+# 检测platform是否在PLATFORM_CHOICES的支持列表中
     check_platform $platform
 
     if [ $? -ne 0 ]
@@ -202,6 +214,8 @@ function lunch()
         echo "** Do you have the right repo manifest?"
         platform=
     fi
+
+# 截掉'-'及其后面的内容，结果赋给product。astar_parrot-tina--->astar_parrot
     local product=$(echo -n $selection | sed -e "s/-.*$//")
     check_product $product
     if [ $? -ne 0 ]
@@ -212,6 +226,7 @@ function lunch()
         product=
     fi
 
+# variant: astar_parrot-tina--->tina
     local variant=$(echo -n $selection | sed -e "s/^[^\-]*-//")
     check_variant $variant
     if [ $? -ne 0 ]
@@ -222,6 +237,7 @@ function lunch()
         variant=
     fi
 
+# product\variant\platform任意一个为空，说明有错误
     if [ -z "$product" -o -z "$variant" -o -z "$platform" ]
     then
         echo
@@ -238,6 +254,29 @@ function lunch()
     echo
 
     set_stuff_for_environment
+# 打印配置信息
+#   $ lunch astar_parrot-tina
+#   ============================================
+#   PLATFORM_VERSION_CODENAME=Neptune
+#   PLATFORM_VERSION=3.0.0
+#   PRODUCT_VERSION=v2.2
+#   TARGET_PRODUCT=astar_parrot
+#   TARGET_BUILD_VARIANT=tina
+#   TARGET_BUILD_TYPE=release
+#   TARGET_BUILD_APPS=
+#   TARGET_ARCH=arm
+#   TARGET_ARCH_VARIANT=armv7-a-neon
+#   TARGET_CPU_VARIANT=cortex-a7
+#   TARGET_2ND_ARCH=
+#   TARGET_2ND_ARCH_VARIANT=
+#   TARGET_2ND_CPU_VARIANT=
+#   HOST_ARCH=x86_64
+#   HOST_OS=linux
+#   HOST_OS_EXTRA=Linux-4.4.0-31-generic-x86_64-with-Ubuntu-14.04-trusty
+#   HOST_BUILD_TYPE=release
+#   BUILD_ID=5A0C0971
+#   TARGET_OUT_DIR=out/astar-parrot
+#   ============================================
     printconfig
 }
 
@@ -1062,8 +1101,21 @@ function make()
     return $ret
 }
 
-
-
+# SHELL是Linux的一个环境变量，指代打开终端时启用的默认shell，以Ubuntu 14.04为例：
+#   $ echo $SHELL
+#     /bin/bash
+#
+# "ps -o command -p $$"解释：
+# $$：shell本身的pid，示例：
+#    $ ps -p $$
+#        PID TTY          TIME CMD
+#      62208 pts/0    00:00:00 bash
+# -o command：ps命令的-o参数允许用户指定显示信息的格式，command指示只显示CMD对应的信息，这里就是"bash"。
+# 结果：
+# COMMAND
+# bash
+#
+# 综上：该if段用来判定当前系统shell是不是bash
 if [ "x$SHELL" != "x/bin/bash" ]; then
     case `ps -o command -p $$` in
         *bash*)
@@ -1075,9 +1127,18 @@ if [ "x$SHELL" != "x/bin/bash" ]; then
 fi
 
 # Execute the contents of any vendorsetup.sh files we can find.
+# "test -d target"：当前目录下存在target且是一个目录
+# "find -L target -maxdepth 4 -name 'vendorsetup.sh'"：在target目录下查找"vendorsetup.sh"文件
+#
+# ". $f"：加载并执行对应的"vendorsetup.sh"文件，我们看下/target/allwinner/astar_parrot/目录下一个"vendorsetup.sh"文件内容：
+#     add_lunch_combo astar_parrot-tina --> 参阅add_lunch_combo的实现
+#
+# 综上：该for语句循环加载target目录下的所有vendorsetup.sh脚本
 for f in `test -d target && find -L target -maxdepth 4 -name 'vendorsetup.sh' | sort 2> /dev/null`
 do
     echo "including $f"
     . $f
 done
+
+# 删除指定的环境变量
 unset f
