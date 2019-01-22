@@ -9,6 +9,8 @@
 RELEASE:=Designated Driver
 PREP_MK= OPENWRT_BUILD= QUIET=0
 
+# tty命令用于显示终端机连接标准输入设备的文件名称
+# -s, --silent, --quiet   print nothing, only return an exit status
 export IS_TTY=$(shell tty -s && echo 1 || echo 0)
 
 include $(TOPDIR)/build/verbose.mk

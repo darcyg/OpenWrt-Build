@@ -8,6 +8,7 @@
 #
 
 TOPDIR:=${CURDIR}
+# LC_ALL=C 是为了去除所有本地化的设置，让命令能正确执行。
 LC_ALL:=C
 LANG:=C
 TZ:=UTC
@@ -15,12 +16,19 @@ export TOPDIR LC_ALL LANG TZ
 
 empty:=
 space:= $(empty) $(empty)
+
+# $(if CONDITION,THEN-PART[,ELSE-PART])
+#
+# $(findstring FIND,IN) 
+# 如果在“IN”之中存在“FIND” ，则返回“FIND”，否则返回空
 $(if $(findstring $(space),$(TOPDIR)),$(error ERROR: The path to the OpenWrt directory must not include any spaces))
 
+# 执行make时，若无任何目标指定，则默认目标是world
 world:
 
 include $(TOPDIR)/build/host.mk
 
+# 执行make时，无参数指定，则会进入第一个分支。如果执行命令make OPENWRT_BUILD=1，则直接进入第二个分支
 ifneq ($(OPENWRT_BUILD),1)
   _SINGLE=export MAKEFLAGS=$(space);
 
