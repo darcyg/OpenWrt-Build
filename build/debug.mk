@@ -21,8 +21,10 @@ ifeq ($(DUMP),)
   endif
 endif
 
+# $(warning DUMP=$(DUMP))
+# $(warning DEBUG=$(DEBUG))
+# DUMP/DEBUG all null
 ifneq ($(DEBUG),)
-
 define debug
 $$(findstring $(2),$$(if $$(DEBUG_SCOPE_DIR),$$(if $$(filter $$(DEBUG_SCOPE_DIR)%,$(1)),$(build_debug)),$(build_debug)))
 endef
@@ -41,7 +43,6 @@ $(4)
 endef
 
 else
-
 debug:=
 warn:=
 debug_eval:=
